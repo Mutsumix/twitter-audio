@@ -90,7 +90,7 @@ const generateJinglesCommand: Command = {
         "radio_intro.mp3",
         introText,
         args.force,
-        "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+        "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
       );
 
       // 結び音声の生成（日本語ボイスIDを使用）
@@ -98,7 +98,7 @@ const generateJinglesCommand: Command = {
         "radio_outro.mp3",
         outroText,
         args.force,
-        "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+        "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
       );
 
       logInfo(`ジングルの生成が完了しました:
@@ -235,7 +235,7 @@ async function addRadioJingles(
       "radio_intro.mp3",
       introText,
       false,
-      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
     );
 
     // 結び音声の取得または生成（日本語ボイスIDを使用）
@@ -243,7 +243,7 @@ async function addRadioJingles(
       "radio_outro.mp3",
       outroText,
       false,
-      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
     );
 
     // 出力パスの設定

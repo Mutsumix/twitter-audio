@@ -42,7 +42,7 @@ const testAudioFeatures = async () => {
       path.join("demo", "demo_intro.mp3"),
       introText,
       true, // 強制再生成
-      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
     );
 
     const outroText =
@@ -51,7 +51,7 @@ const testAudioFeatures = async () => {
       path.join("demo", "demo_outro.mp3"),
       outroText,
       true, // 強制再生成
-      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
     );
 
     logInfo("コンテンツを生成します");
@@ -61,7 +61,7 @@ const testAudioFeatures = async () => {
       path.join("demo", "demo_content.mp3"),
       contentText,
       true, // 強制再生成
-      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
+      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
     );
 
     // 2. ファイルの結合
