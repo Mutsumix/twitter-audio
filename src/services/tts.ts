@@ -58,8 +58,12 @@ export const synthesizeSpeechWithElevenLabs = async (
           },
           data: {
             text,
-            model_id: "eleven_monolingual_v1",
-            voice_settings: TTS_SETTINGS.VOICE_SETTINGS,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              ...TTS_SETTINGS.VOICE_SETTINGS,
+              style: 0,
+              use_speaker_boost: true,
+            },
           },
           responseType: "arraybuffer",
         });
