@@ -114,26 +114,62 @@ export const generateSilence = async (
   outputPath: string,
   durationSeconds: number
 ): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    ffmpeg()
-      .input("anullsrc=r=44100:cl=stereo")
-      .inputFormat("lavfi")
-      .audioCodec("libmp3lame")
-      .duration(durationSeconds)
-      .on("error", (err) => {
-        logError("無音ファイル生成中にエラーが発生しました", {
-          error: err.message,
-        });
-        reject(err);
-      })
-      .on("end", () => {
-        logInfo(
-          `${durationSeconds}秒の無音ファイルを生成しました: ${outputPath}`
-        );
-        resolve(outputPath);
-      })
-      .save(outputPath);
-  });
+  try {
+    // 異なるアプローチでの無音生成
+    // 一時的な空のファイルを作成
+    const tempFilePath = path.join(
+      path.dirname(outputPath),
+      `_temp_${Math.random().toString(36).substring(7)}.mp3`
+    );
+
+    // ディレクトリの存在確認と作成
+    const dirPath = path.dirname(outputPath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    // 空の1秒の音声ファイルを生成（空の16KBのバッファ）
+    const emptyBuffer = Buffer.alloc(16 * 1024);
+    fs.writeFileSync(tempFilePath, emptyBuffer);
+
+    return new Promise((resolve, reject) => {
+      ffmpeg(tempFilePath)
+        .audioCodec("libmp3lame")
+        .audioBitrate("32k")
+        .audioChannels(2)
+        .duration(durationSeconds)
+        .on("error", (err) => {
+          logError("無音ファイル生成中にエラーが発生しました", {
+            error: err.message,
+          });
+
+          // エラー時にはファイルを削除
+          if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+          }
+
+          reject(err);
+        })
+        .on("end", () => {
+          logInfo(
+            `${durationSeconds}秒の無音ファイルを生成しました: ${outputPath}`
+          );
+
+          // 一時ファイルを削除
+          if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+          }
+
+          resolve(outputPath);
+        })
+        .save(outputPath);
+    });
+  } catch (error) {
+    logError("無音ファイル生成中にエラーが発生しました", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 };
 
 /**
