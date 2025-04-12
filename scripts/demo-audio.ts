@@ -18,6 +18,12 @@ if (!fs.existsSync(DEMO_DIR)) {
   fs.mkdirSync(DEMO_DIR, { recursive: true });
 }
 
+// ジングル用のディレクトリも作成
+const JINGLES_DEMO_DIR = path.join(AUDIO_OUTPUT_DIR, "jingles", "demo");
+if (!fs.existsSync(JINGLES_DEMO_DIR)) {
+  fs.mkdirSync(JINGLES_DEMO_DIR, { recursive: true });
+}
+
 /**
  * ラジオジングルと無音を生成してテストする
  */

@@ -64,6 +64,13 @@ export const synthesizeSpeechWithElevenLabs = async (
           responseType: "arraybuffer",
         });
 
+        // ディレクトリが存在することを確認
+        const dirPath = path.dirname(finalOutputPath);
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, { recursive: true });
+          logInfo(`ディレクトリを作成しました: ${dirPath}`);
+        }
+
         fs.writeFileSync(finalOutputPath, response.data);
         logInfo(`音声ファイルを保存しました: ${finalOutputPath}`);
         return finalOutputPath;
