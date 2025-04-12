@@ -79,11 +79,11 @@ const generateJinglesCommand: Command = {
   ],
   handler: async (args) => {
     try {
-      // 挨拶用のテキスト
+      // 挨拶用のテキスト（読み上げやすくひらがな主体に）
       const introText =
-        "こんにちは、Twitterお気に入りポッドキャストへようこそ。今回のお気に入りツイートをご紹介します。";
+        "こんにちは、ツイッター おきにいり ポッドキャストへ ようこそ。こんかいの おきにいり ツイートを ごしょうかいします。";
       const outroText =
-        "以上で今回のTwitterお気に入りポッドキャストを終わります。お聴きいただきありがとうございました。";
+        "いじょうで こんかいの ツイッター おきにいり ポッドキャストを おわります。おききいただき ありがとうございました。";
 
       // 挨拶音声の生成（日本語ボイスIDを使用）
       const introPath = await getOrCreateRadioJingle(
