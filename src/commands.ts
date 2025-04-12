@@ -7,7 +7,8 @@ import { Command } from "./utils/cli";
 import { logInfo, logError } from "./utils/logger";
 import { formatDateTimeJP, formatDate } from "./utils/date";
 import { getOrCreateRadioJingle, mergeAudioFiles } from "./utils/audio-utils";
-import main from "./index";
+// 独立したメイン関数をインポート
+import { processAll } from "./commands-main";
 import { config } from "./config";
 
 // 出力ディレクトリの確認・作成
@@ -39,8 +40,8 @@ const processAllCommand: Command = {
   ],
   handler: async (args) => {
     try {
-      // 通常の処理を実行
-      const result = await main();
+      // processAll関数を実行
+      const result = await processAll({ maxTweets: args.limit });
 
       // 処理結果がなければ終了
       if (!result) {

@@ -12,6 +12,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "demo:audio": "ts-node scripts/demo-audio.ts",
+    "test:tts": "ts-node scripts/test-tts.ts",
+    "test:tweet-process": "ts-node scripts/test-tweet-process.ts",
     "audio:generate-jingles": "ts-node src/index.ts generate-jingles",
     "audio:add-jingles": "ts-node src/index.ts add-jingles",
     "audio:merge": "ts-node src/index.ts merge-audio-files"
@@ -28,6 +30,8 @@
     "dotenv": "^16.5.0",
     "fluent-ffmpeg": "^2.1.3",
     "googleapis": "^148.0.0",
+    "kuroshiro": "^1.2.0",
+    "kuroshiro-analyzer-kuromoji": "^1.1.0",
     "openai": "^4.93.0",
     "prisma": "^6.6.0",
     "puppeteer": "^24.6.1",

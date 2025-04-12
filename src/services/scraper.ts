@@ -3,7 +3,8 @@
  * ツイート内のリンクからWebページの内容を取得
  */
 import puppeteer from "puppeteer";
-import cheerio from "cheerio";
+// ESMインポートではなくCommonJSスタイルでcheerioをインポート
+const cheerio = require("cheerio");
 import { logError, logInfo } from "../utils/logger";
 import { ScrapedContent } from "../types";
 import { retryAsync } from "../utils/error-handler";
@@ -29,6 +30,8 @@ export const scrapeUrl = async (url: string): Promise<ScrapedContent> => {
     // Puppeteerを使用してJavaScriptが必要なサイトに対応
     return await retryAsync(
       async () => {
+        // Puppeteerブラウザの起動
+        logInfo(`Puppeteerでスクレイピング開始: ${url}`);
         const browser = await puppeteer.launch({
           headless: true,
           args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -41,76 +44,115 @@ export const scrapeUrl = async (url: string): Promise<ScrapedContent> => {
           await page.setDefaultNavigationTimeout(30000);
 
           // ページにアクセス
+          logInfo(`ページに接続中: ${url}`);
           await page.goto(url, { waitUntil: "networkidle2" });
 
           // HTML取得
+          logInfo("HTMLコンテンツを取得中...");
           const html = await page.content();
-          const $ = cheerio.load(html);
 
-          // タイトル取得
-          const title = $("title").text().trim();
+          // HTMLが取得できたか確認
+          if (!html) {
+            throw new Error("HTMLコンテンツが取得できませんでした");
+          }
 
-          // サイト名取得（OGPから）
-          const siteName =
-            $('meta[property="og:site_name"]').attr("content") || "";
+          logInfo(`HTMLコンテンツ取得完了: ${html.length}文字`);
 
-          // 公開日取得（metaタグから）
-          const publishDate =
-            $('meta[property="article:published_time"]').attr("content") ||
-            $('meta[name="pubdate"]').attr("content") ||
-            $('meta[name="publishdate"]').attr("content") ||
-            $('meta[name="date"]').attr("content") ||
-            "";
+          // cheerioを使ってHTMLをパース
+          try {
+            const $ = cheerio.load(html);
 
-          // 本文抽出
-          // 記事コンテンツを取得（一般的な記事コンテナを対象）
-          let content = "";
-          const contentSelectors = [
-            "article",
-            ".article",
-            ".post-content",
-            ".entry-content",
-            "main",
-            "#main",
-            ".main-content",
-            ".content",
-          ];
+            // タイトル取得
+            const title = $("title").text().trim();
+            logInfo(`タイトル: ${title}`);
 
-          for (const selector of contentSelectors) {
-            const element = $(selector);
-            if (element.length > 0) {
-              // HTML要素を除去してテキストのみ取得
-              content = element.text().trim().replace(/\s+/g, " ");
-              break;
+            // サイト名取得（OGPから）
+            const siteName =
+              $('meta[property="og:site_name"]').attr("content") || "";
+
+            // 公開日取得（metaタグから）
+            const publishDate =
+              $('meta[property="article:published_time"]').attr("content") ||
+              $('meta[name="pubdate"]').attr("content") ||
+              $('meta[name="publishdate"]').attr("content") ||
+              $('meta[name="date"]').attr("content") ||
+              "";
+
+            // 本文抽出
+            // 記事コンテンツを取得（一般的な記事コンテナを対象）
+            let content = "";
+            const contentSelectors = [
+              "article",
+              ".article",
+              ".post-content",
+              ".entry-content",
+              "main",
+              "#main",
+              ".main-content",
+              ".content",
+            ];
+
+            for (const selector of contentSelectors) {
+              const element = $(selector);
+              if (element.length > 0) {
+                // HTML要素を除去してテキストのみ取得
+                content = element.text().trim().replace(/\s+/g, " ");
+                break;
+              }
             }
+
+            // コンテンツが見つからない場合は本文全体を使用
+            if (!content) {
+              // 不要な要素を削除
+              $(
+                "header, nav, footer, script, style, noscript, iframe, form"
+              ).remove();
+              content = $("body").text().trim().replace(/\s+/g, " ");
+            }
+
+            // 空の場合は仕方なくタイトルだけを使用
+            if (!content) {
+              content = title;
+            }
+
+            logInfo(`コンテンツ抽出完了: ${content.length}文字`);
+
+            return {
+              url,
+              title,
+              content,
+              siteName,
+              publishDate,
+            };
+          } catch (cheerioError) {
+            logError("cheerioでのHTMLパース中にエラーが発生しました", {
+              error:
+                cheerioError instanceof Error
+                  ? cheerioError.message
+                  : String(cheerioError),
+            });
+
+            // cheerioでのパースに失敗した場合、単純なテキスト抽出で対応
+            const title = await page.title();
+            const content = await page.evaluate(() => document.body.innerText);
+
+            return {
+              url,
+              title,
+              content: content || "",
+              siteName: "",
+              publishDate: "",
+            };
           }
-
-          // コンテンツが見つからない場合は本文全体を使用
-          if (!content) {
-            // 不要な要素を削除
-            $(
-              "header, nav, footer, script, style, noscript, iframe, form"
-            ).remove();
-            content = $("body").text().trim().replace(/\s+/g, " ");
-          }
-
-          // 空の場合は仕方なくタイトルだけを使用
-          if (!content) {
-            content = title;
-          }
-
-          await browser.close();
-
-          return {
-            url,
-            title,
-            content,
-            siteName,
-            publishDate,
-          };
         } catch (error) {
-          await browser.close();
+          logError(`スクレイピング処理でエラー発生`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
           throw error;
+        } finally {
+          // 必ずブラウザを閉じる
+          await browser.close();
+          logInfo("ブラウザを閉じました");
         }
       },
       2,
