@@ -32,6 +32,7 @@ const createConversationPrompt = (
   return `
 以下の要約コンテンツを、一人のキャラクターが語るラジオ番組風の形式に変換してください。
 キャラクターは知的で親しみやすく、時折ユーモアを交えながら話します。
+個人名や企業名、サービス名を明確に言及し、具体的な情報を提供してください。
 
 要約コンテンツ:
 """
@@ -49,6 +50,7 @@ ${tweetInfo}
 自然な話し言葉で、一人のパーソナリティが解説するような会話の流れを作ってください。
 「というわけで」「さて」「今日は」などの接続詞を適切に使って、ラジオ番組のようなトーンにしてください。
 ただし、「このツイートは」や「このリンクは」などの表現は避け、コンテンツの内容自体について直接解説するスタイルにしてください。
+挨拶は最初と最後のみにし、途中での不自然な挨拶を避けてください。
 `;
 };
 
@@ -111,6 +113,33 @@ export const convertToConversation = async (
 };
 
 /**
+ * 生成されたテキストから不要な表現を削除する後処理
+ * @param text 処理するテキスト
+ * @returns 処理後のテキスト
+ */
+function postProcessText(text: string): string {
+  // 「こんにちは」などの挨拶表現を削除
+  let processed = text.replace(/こんにちは[、。].+?(?=\n|$)/g, "");
+
+  // 「今日は」で始まる文を修正
+  processed = processed.replace(/今日は([^。]+)(?=\n|$)/g, "$1");
+
+  // 「最後に」などの結びの表現を削除または修正
+  processed = processed.replace(/最後に、?/g, "また、");
+  processed = processed.replace(/以上が.+?(?=\n|$)/g, "");
+  processed = processed.replace(/今回(は|の).+?(?=\n|$)/g, "");
+  processed = processed.replace(/まとめると.+?(?=\n|$)/g, "");
+
+  // 段落の先頭の「さて、」「では、」などの接続詞を削除
+  processed = processed.replace(/^(さて、|では、|それでは、)/gm, "");
+
+  // 連続する改行を最大2つに制限
+  processed = processed.replace(/\n{3,}/g, "\n\n");
+
+  return processed;
+}
+
+/**
  * 複数の要約コンテンツをまとめて会話形式に変換
  * 個別処理ではなく、コンテンツをまとめて分析する効率的な方法
  * @param techContents 技術系コンテンツの配列
@@ -128,6 +157,8 @@ export const createPodcastScript = async (
   if (techContents.length > 0) {
     try {
       techScript = await generateCombinedSection(techContents, "技術系");
+      // 後処理を適用
+      techScript = postProcessText(techScript);
     } catch (error) {
       logError("技術系コンテンツの一括処理に失敗しました", {
         error: error instanceof Error ? error.message : String(error),
@@ -143,6 +174,8 @@ export const createPodcastScript = async (
   if (otherContents.length > 0) {
     try {
       otherScript = await generateCombinedSection(otherContents, "一般");
+      // 後処理を適用
+      otherScript = postProcessText(otherScript);
     } catch (error) {
       logError("一般コンテンツの一括処理に失敗しました", {
         error: error instanceof Error ? error.message : String(error),
@@ -155,33 +188,23 @@ export const createPodcastScript = async (
 
   try {
     // 固定オープニング
-    const openingScript = `はい！ムツミックスの最初はグッド トゥウ ミイ！
+    const openingScript = `はい！ムツミックスの最初はグッド トゥー ミイ！
 
-この番組はいけぶくろに生息するエンジニア、ムツミックスがツイッター、かっこ げんエックス で今週お気に入りをつけたツイートを、AIが勝手にまとめて分析して紹介するというポッドキャスト番組です。
+この番組はいけぶくろにせいそくするエンジニア、ムツミックスがツイッターで今週お気に入りをつけたツイートを、AIがかってにまとめて分析して紹介するというポッドキャスト番組です。
 これを読み上げている私もAIです。
 こんな時代ですが、最後までお聞きいただけるとハッピーです。まあ私AIなんで感情ありませんけど。
 それでは早速紹介していきます。\n\n`;
 
-    // 技術系コンテンツ（チャンク間の接続を改善）
+    // 技術系コンテンツ
     const techSection =
       techContents.length > 0
-        ? `今週の技術系の話題は${
-            techContents.length
-          }件ありました。\n\n${techScript.replace(
-            /こんにちは[、。].+?です。/g,
-            ""
-          )}\n\n`
+        ? `今週の技術系の話題は${techContents.length}件ありました。\n\n${techScript}\n\n`
         : "";
 
-    // その他コンテンツ（チャンク間の接続を改善）
+    // その他コンテンツ
     const otherSection =
       otherContents.length > 0
-        ? `続いて、その他の話題を${
-            otherContents.length
-          }件紹介します。\n\n${otherScript.replace(
-            /こんにちは[、。].+?[。ます]/,
-            ""
-          )}\n\n`
+        ? `続いて、その他の話題を${otherContents.length}件紹介します。\n\n${otherScript}\n\n`
         : "";
 
     // 統計情報と傾向のまとめを生成
@@ -321,11 +344,8 @@ ${summaries}
 4. 特定のツイートを一つずつ説明するのではなく、テーマごとにまとめてください
 5. 適度に段落に分けて、読みやすくしてください
 6. 「次のツイート」「別のツイート」といった表現は避けてください
-7. ${
-    isFirstChunk
-      ? "最初のチャンクなので、簡潔な挨拶から始めてください"
-      : "ここは中間のチャンクなので、挨拶や結びは含めないでください"
-  }
+7. 「最後に」「以上の」「今日は」「今回はここまで」などの、チャンクの中で最初と最後を意識させるような言葉は絶対に使わないでください
+8. 個人名や企業名、サービス名を明確に言及し、具体的な情報を提供してください
 
 返答はシンプルなナレーション形式で、まとまりのある内容にしてください。
 「ホスト：」などの表記や、読み上げない指示などは一切含めないでください。
