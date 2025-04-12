@@ -16,7 +16,9 @@
     "test:tweet-process": "ts-node scripts/test-tweet-process.ts",
     "audio:generate-jingles": "ts-node src/index.ts generate-jingles",
     "audio:add-jingles": "ts-node src/index.ts add-jingles",
-    "audio:merge": "ts-node src/index.ts merge-audio-files"
+    "audio:merge": "ts-node src/index.ts merge-audio-files",
+    "audio:generate": "ts-node src/index.ts generate-audio",
+    "generate-audio": "ts-node scripts/generate-audio.ts"
   },
   "keywords": [],
   "author": "",

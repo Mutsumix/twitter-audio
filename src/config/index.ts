@@ -36,6 +36,7 @@ export const config = {
   // 音声合成
   tts: {
     apiKey: requireEnv("TTS_API_KEY"),
+    voiceId: requireEnv("TTS_VOICE_ID"),
   },
 
   // データベース

@@ -371,7 +371,8 @@ export const textToSpeech = async (
     }
 
     // 日本語テキストの場合は難しい漢字をひらがなに変換
-    const voiceId = options?.voiceId || TTS_SETTINGS.DEFAULT_VOICE_ID;
+    const voiceId =
+      options?.voiceId || config.tts.voiceId || TTS_SETTINGS.DEFAULT_VOICE_ID;
     const isJapaneseVoice = voiceId === TTS_SETTINGS.DEFAULT_JP_VOICE_ID;
 
     let processedText = text;

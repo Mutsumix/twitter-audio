@@ -10,6 +10,7 @@ import { getOrCreateRadioJingle, mergeAudioFiles } from "./utils/audio-utils";
 // 独立したメイン関数をインポート
 import { processAll } from "./commands-main";
 import { config } from "./config";
+import { textToSpeech } from "./services/tts";
 
 // 出力ディレクトリの確認・作成
 const AUDIO_OUTPUT_DIR = path.join(process.cwd(), "output", "audio");
@@ -287,6 +288,60 @@ const helpCommand: Command = {
 };
 
 /**
+ * テキストファイルを音声に変換するコマンド
+ */
+const generateAudioCommand: Command = {
+  name: "generate-audio",
+  description: "テキストファイルを音声に変換します",
+  options: [
+    {
+      name: "file",
+      description: "変換するテキストファイルのパス",
+      type: "string",
+      required: true,
+    },
+    {
+      name: "output",
+      description: "出力ファイル名（指定しない場合は自動生成）",
+      type: "string",
+    },
+  ],
+  handler: async (args) => {
+    try {
+      // 対象ファイルの存在確認
+      const filePath = args.file as string;
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`ファイルが見つかりません: ${filePath}`);
+      }
+
+      // テキストファイルの読み込み
+      const text = fs.readFileSync(filePath, "utf-8");
+
+      // 出力パスの設定
+      let outputPath = args.output as string;
+      if (!outputPath) {
+        const fileName = path.basename(filePath, path.extname(filePath));
+        outputPath = path.join(config.paths.outputDir, `${fileName}.mp3`);
+      }
+
+      // 音声合成
+      logInfo(`テキストファイルを音声に変換します: ${filePath}`);
+      const { filePath: resultPath, duration } = await textToSpeech(text, {
+        outputPath,
+      });
+
+      logInfo(
+        `音声ファイルを生成しました: ${resultPath} (${Math.round(duration)}秒)`
+      );
+    } catch (error) {
+      logError("音声生成中にエラーが発生しました", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
+};
+
+/**
  * 利用可能なコマンド一覧
  */
 export const commands: Command[] = [
@@ -294,6 +349,7 @@ export const commands: Command[] = [
   generateJinglesCommand,
   mergeAudioFilesCommand,
   addRadioJinglesCommand,
+  generateAudioCommand,
   helpCommand,
 ];
 
