@@ -41,38 +41,31 @@ export const mergeAudioFiles = async (
 
     logInfo(`${audioFilePaths.length}個の音声ファイルを結合します`);
 
-    // 無音ファイルの生成
-    const silenceFilePath = path.join(
-      AUDIO_OUTPUT_DIR,
-      `_silence_${silenceDuration}s.mp3`
-    );
-    if (!fs.existsSync(silenceFilePath)) {
-      logInfo(
-        `${silenceDuration}秒の無音ファイルを生成します: ${silenceFilePath}`
-      );
-      await generateSilence(silenceFilePath, silenceDuration);
+    // 出力ディレクトリの確認
+    const outputDir = path.dirname(outputFilePath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    // 結合用の一時リスト
-    const mergeList: string[] = [];
-
-    // 無音を挟んで結合するためのリスト作成
-    audioFilePaths.forEach((filePath, index) => {
-      mergeList.push(filePath);
-      // 最後のファイル以外の後ろに無音を追加
-      if (index < audioFilePaths.length - 1) {
-        mergeList.push(silenceFilePath);
-      }
-    });
-
-    // FFmpegによる結合
+    // FFmpegによる結合（無音なしでフィルターを使う）
     return new Promise((resolve, reject) => {
+      // フィルターコンプレックスで無音を挿入
+      const inputs = audioFilePaths.map((_, i) => `[${i}:a]`).join("");
+      const silenceFilter =
+        audioFilePaths.length > 1
+          ? `${inputs}concat=n=${audioFilePaths.length}:v=0:a=1[out]`
+          : "";
+
       const command = ffmpeg();
 
-      // 全てのファイルを入力に追加
-      mergeList.forEach((file) => {
+      // 各ファイルを入力として追加
+      audioFilePaths.forEach((file) => {
         command.input(file);
       });
+
+      if (audioFilePaths.length > 1) {
+        command.complexFilter(silenceFilter);
+      }
 
       command
         .on("start", (commandLine) => {
@@ -93,8 +86,16 @@ export const mergeAudioFiles = async (
         .on("end", () => {
           logInfo(`音声ファイルの結合が完了しました: ${outputFilePath}`);
           resolve(outputFilePath);
-        })
-        .mergeToFile(outputFilePath, AUDIO_OUTPUT_DIR);
+        });
+
+      if (audioFilePaths.length > 1) {
+        command.map("[out]");
+      }
+
+      command
+        .audioCodec("libmp3lame")
+        .audioBitrate("192k")
+        .save(outputFilePath);
     });
   } catch (error) {
     logError("音声ファイル結合中にエラーが発生しました", {
@@ -104,73 +105,7 @@ export const mergeAudioFiles = async (
   }
 };
 
-/**
- * 指定された長さの無音ファイルを生成する
- * @param outputPath 出力先ファイルパス
- * @param durationSeconds 無音の長さ（秒）
- * @returns 生成したファイルのパス
- */
-export const generateSilence = async (
-  outputPath: string,
-  durationSeconds: number
-): Promise<string> => {
-  try {
-    // 異なるアプローチでの無音生成
-    // 一時的な空のファイルを作成
-    const tempFilePath = path.join(
-      path.dirname(outputPath),
-      `_temp_${Math.random().toString(36).substring(7)}.mp3`
-    );
-
-    // ディレクトリの存在確認と作成
-    const dirPath = path.dirname(outputPath);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
-
-    // 空の1秒の音声ファイルを生成（空の16KBのバッファ）
-    const emptyBuffer = Buffer.alloc(16 * 1024);
-    fs.writeFileSync(tempFilePath, emptyBuffer);
-
-    return new Promise((resolve, reject) => {
-      ffmpeg(tempFilePath)
-        .audioCodec("libmp3lame")
-        .audioBitrate("32k")
-        .audioChannels(2)
-        .duration(durationSeconds)
-        .on("error", (err) => {
-          logError("無音ファイル生成中にエラーが発生しました", {
-            error: err.message,
-          });
-
-          // エラー時にはファイルを削除
-          if (fs.existsSync(tempFilePath)) {
-            fs.unlinkSync(tempFilePath);
-          }
-
-          reject(err);
-        })
-        .on("end", () => {
-          logInfo(
-            `${durationSeconds}秒の無音ファイルを生成しました: ${outputPath}`
-          );
-
-          // 一時ファイルを削除
-          if (fs.existsSync(tempFilePath)) {
-            fs.unlinkSync(tempFilePath);
-          }
-
-          resolve(outputPath);
-        })
-        .save(outputPath);
-    });
-  } catch (error) {
-    logError("無音ファイル生成中にエラーが発生しました", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    throw error;
-  }
-};
+// 無音ファイル生成は使用しない
 
 /**
  * ラジオ風の挨拶音声を生成またはキャッシュから取得
@@ -247,7 +182,6 @@ export const getAudioDuration = async (filePath: string): Promise<number> => {
 
 export default {
   mergeAudioFiles,
-  generateSilence,
   getOrCreateRadioJingle,
   getAudioDuration,
 };
