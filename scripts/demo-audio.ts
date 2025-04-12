@@ -34,9 +34,9 @@ const testAudioFeatures = async () => {
     // 1. ラジオジングルの生成
     logInfo("ラジオジングルを生成します");
 
-    // 読み上げやすくするため、ひらがなを多めに使用
+    // バランスの取れた読み上げテキスト（一般的な単語は漢字、難しいものはひらがな）
     const introText =
-      "こんにちは、ツイッター おんせいか デモへようこそ。かんたんな きのう テストを おこないます。";
+      "こんにちは、Twitter音声化デモへようこそ。簡単な機能テストを行います。";
 
     // TTS_SETTINGS.DEFAULT_JP_VOICE_IDを使用
     const introPath = await getOrCreateRadioJingle(
@@ -46,9 +46,9 @@ const testAudioFeatures = async () => {
       "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
     );
 
-    // 読み上げやすくするため、ひらがなを多めに使用
+    // バランスの取れた読み上げテキスト
     const outroText =
-      "いじょうで テストを しゅうりょうします。ごせいちょう ありがとうございました。";
+      "以上でテストを終了します。ご清聴 ありがとうございました。";
     const outroPath = await getOrCreateRadioJingle(
       path.join("demo", "demo_outro.mp3"),
       outroText,
@@ -57,9 +57,9 @@ const testAudioFeatures = async () => {
     );
 
     logInfo("コンテンツを生成します");
-    // 読み上げやすくするため、ひらがなを多めに使用し、文を短くシンプルに
+    // バランスの取れた読み上げテキスト
     const contentText =
-      "これは テストよう の おんせい コンテンツです。この システムでは、ツイッター の おきにいり ツイートを おんせいかして ポッドキャスト のように たのしむことが できます。";
+      "これはテスト用の音声コンテンツです。このシステムでは、Twitterのお気に入りツイートを音声化して ポッドキャストのように楽しむことができます。";
     const contentPath = await getOrCreateRadioJingle(
       path.join("demo", "demo_content.mp3"),
       contentText,

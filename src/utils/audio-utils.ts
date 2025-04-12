@@ -139,6 +139,9 @@ export const getOrCreateRadioJingle = async (
     // TTSサービスを使用して音声ファイルを生成
     logInfo(`ジングル用の音声ファイルを生成します: ${outputPath}`);
 
+    // テキストをログに記録（デバッグ用）
+    logInfo(`読み上げテキスト: "${text}"`);
+
     // 音声ファイルを生成
     const { filePath } = await textToSpeech(text, {
       outputPath,
