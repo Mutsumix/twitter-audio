@@ -26,7 +26,8 @@ export const SUMMARY_LENGTH = {
 
 // 音声設定
 export const TTS_SETTINGS = {
-  DEFAULT_VOICE_ID: "default",
+  DEFAULT_VOICE_ID: "21m00Tcm4TlvDq8ikWAM", // Adam (英語)
+  DEFAULT_JP_VOICE_ID: "pNInz6obpgDQGcFmaJgB", // 日本語対応の音声ID（Bella）
   OUTPUT_FORMAT: "mp3",
   VOICE_SETTINGS: {
     stability: 0.5,

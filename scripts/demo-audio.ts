@@ -30,10 +30,13 @@ const testAudioFeatures = async () => {
 
     const introText =
       "こんにちは、Twitter音声化デモへようこそ。簡単な機能テストを行います。";
+
+    // TTS_SETTINGS.DEFAULT_JP_VOICE_IDを使用
     const introPath = await getOrCreateRadioJingle(
       path.join("demo", "demo_intro.mp3"),
       introText,
-      true // 強制再生成
+      true, // 強制再生成
+      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
     );
 
     const outroText =
@@ -41,7 +44,8 @@ const testAudioFeatures = async () => {
     const outroPath = await getOrCreateRadioJingle(
       path.join("demo", "demo_outro.mp3"),
       outroText,
-      true // 強制再生成
+      true, // 強制再生成
+      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
     );
 
     logInfo("コンテンツを生成します");
@@ -50,7 +54,8 @@ const testAudioFeatures = async () => {
     const contentPath = await getOrCreateRadioJingle(
       path.join("demo", "demo_content.mp3"),
       contentText,
-      true // 強制再生成
+      true, // 強制再生成
+      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
     );
 
     // 2. ファイルの結合

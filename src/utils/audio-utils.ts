@@ -141,12 +141,14 @@ export const generateSilence = async (
  * @param outputFileName 出力ファイル名
  * @param text 挨拶のテキスト
  * @param forceRegenerate 既存ファイルがあっても強制的に再生成するかどうか
+ * @param voiceId 使用する音声ID（省略時はデフォルトの音声）
  * @returns 生成された音声ファイルのパス
  */
 export const getOrCreateRadioJingle = async (
   outputFileName: string,
   text: string,
-  forceRegenerate: boolean = false
+  forceRegenerate: boolean = false,
+  voiceId?: string
 ): Promise<string> => {
   // 挨拶・結び用のディレクトリ
   const jinglesDir = path.join(AUDIO_OUTPUT_DIR, "jingles");
@@ -169,8 +171,7 @@ export const getOrCreateRadioJingle = async (
     // 音声ファイルを生成
     const { filePath } = await textToSpeech(text, {
       outputPath,
-      // 必要に応じてボイスIDを指定することも可能
-      // voiceId: 'specific-voice-id'
+      voiceId: voiceId, // voiceIdが指定されていれば使用
     });
 
     return filePath;

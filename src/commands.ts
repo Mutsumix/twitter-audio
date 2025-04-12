@@ -85,18 +85,20 @@ const generateJinglesCommand: Command = {
       const outroText =
         "以上で今回のTwitterお気に入りポッドキャストを終わります。お聴きいただきありがとうございました。";
 
-      // 挨拶音声の生成
+      // 挨拶音声の生成（日本語ボイスIDを使用）
       const introPath = await getOrCreateRadioJingle(
         "radio_intro.mp3",
         introText,
-        args.force
+        args.force,
+        "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
       );
 
-      // 結び音声の生成
+      // 結び音声の生成（日本語ボイスIDを使用）
       const outroPath = await getOrCreateRadioJingle(
         "radio_outro.mp3",
         outroText,
-        args.force
+        args.force,
+        "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
       );
 
       logInfo(`ジングルの生成が完了しました:
@@ -228,16 +230,20 @@ async function addRadioJingles(
     const outroText =
       "以上で今回のTwitterお気に入りポッドキャストを終わります。お聴きいただきありがとうございました。";
 
-    // 挨拶音声の取得または生成
+    // 挨拶音声の取得または生成（日本語ボイスIDを使用）
     const introPath = await getOrCreateRadioJingle(
       "radio_intro.mp3",
-      introText
+      introText,
+      false,
+      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
     );
 
-    // 結び音声の取得または生成
+    // 結び音声の取得または生成（日本語ボイスIDを使用）
     const outroPath = await getOrCreateRadioJingle(
       "radio_outro.mp3",
-      outroText
+      outroText,
+      false,
+      "pNInz6obpgDQGcFmaJgB" // 日本語ボイスID（Bella）
     );
 
     // 出力パスの設定
