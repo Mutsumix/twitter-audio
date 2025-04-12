@@ -134,25 +134,18 @@ const main = async () => {
   }
 };
 
+// コマンドラインインターフェースの設定
+import { runCli } from "./utils/cli";
+import commands from "./commands";
+
 // スクリプトとして直接実行された場合
 if (require.main === module) {
-  main()
-    .then((result) => {
-      if (result) {
-        console.log(
-          `\n✅ Podcastが正常に生成されました: ${result.filePath} (${Math.round(
-            result.duration
-          )}秒)`
-        );
-      } else {
-        console.log("\n✅ 処理を完了しました (処理対象のツイートなし)");
-      }
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("\n❌ エラーが発生しました:", error);
-      process.exit(1);
-    });
+  // コマンドライン引数がある場合はCLIモードで実行
+  // 引数がない場合は対話型モードになる
+  runCli(commands).catch((error) => {
+    console.error("\n❌ CLIの実行中にエラーが発生しました:", error);
+    process.exit(1);
+  });
 }
 
 export default main;

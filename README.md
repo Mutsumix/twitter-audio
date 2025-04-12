@@ -14,6 +14,9 @@ Twitter のお気に入りツイートとリンク記事を要約し、Podcast �
 - コンテンツの要約生成
 - 会話形式への変換
 - 音声ファイル（MP3）の生成
+- ラジオ風の挨拶と結びの自動生成と追加
+- 複数音声ファイルの結合（無音付き）
+- 対話型コマンドラインインターフェース
 - SQLite によるデータ管理
 
 ## 技術スタック
@@ -29,7 +32,8 @@ Twitter のお気に入りツイートとリンク記事を要約し、Podcast �
   - googleapis: Google Sheets API 連携
   - puppeteer/cheerio: Web スクレイピング
   - openai: OpenAI API 連携
-  - node-gtts/elevenlabs: 音声合成
+  - elevenlabs: 音声合成
+  - fluent-ffmpeg: 音声ファイル操作
   - prisma: SQLite の ORM
 
 ## 前提条件
@@ -55,11 +59,51 @@ cp .env.example .env
 
 ## 使い方
 
+### 通常実行
+
 ```bash
-# 音声Podcastの生成
+# 音声Podcastの生成（基本機能）
 npm run generate-podcast
 
 # 生成された音声ファイルは output/ ディレクトリに保存されます
+```
+
+### 対話型モード
+
+引数なしで実行すると対話型モードが起動し、実行したい機能を選択できます：
+
+```bash
+npm run dev
+```
+
+### コマンドライン実行
+
+特定の機能を直接実行することも可能です：
+
+```bash
+# すべての処理を実行し、ラジオ風のジングルを追加
+npm run dev -- process-all --with-jingle
+
+# ラジオ風の挨拶と結びを生成
+npm run audio:generate-jingles
+
+# 既存の音声ファイルにジングルを追加
+npm run audio:add-jingles -- --file=output/your-file.mp3
+
+# 複数の音声ファイルを結合
+npm run audio:merge -- --files=file1.mp3,file2.mp3 --output=combined.mp3 --silence=2.5
+
+# ヘルプの表示
+npm run dev -- help
+```
+
+### デモの実行
+
+基本的な音声操作機能をテストするデモを実行できます：
+
+```bash
+# 音声操作機能のデモを実行
+npm run demo:audio
 ```
 
 ## 環境変数
@@ -79,9 +123,18 @@ TTS_API_KEY=your_tts_api_key
 
 # データベース設定
 DATABASE_URL="file:./dev.db"
+
+# Cloudflare設定（Webサイト公開機能用・オプション）
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+CLOUDFLARE_R2_BUCKET_NAME=your_r2_bucket_name
+CLOUDFLARE_R2_PUBLIC_URL=your_r2_public_url
+CLOUDFLARE_PAGES_PROJECT_NAME=your_pages_project_name
 ```
 
 ## システムの流れ
+
+### 基本プロセス
 
 1. Google スプレッドシートから過去 1 週間分のツイートデータを取得
 2. リンク記事の内容をスクレイピング
@@ -89,7 +142,14 @@ DATABASE_URL="file:./dev.db"
 4. 各カテゴリのコンテンツを要約
 5. 会話形式に変換
 6. 音声ファイルに合成
-7. 処理済みデータを SQLite に記録
+7. ラジオ風のオープニングとエンディングを追加（オプション）
+8. 処理済みデータを SQLite に記録
+
+### 音声加工プロセス
+
+1. ラジオ風のジングル生成（挨拶と結び）
+2. 音声ファイル間に無音を挿入
+3. 複数の音声ファイルを結合して一つのポッドキャストとして出力
 
 ## ライセンス
 
