@@ -1,0 +1,31 @@
+{
+  "name": "twitter-audio",
+  "version": "1.0.0",
+  "description": "Twitter のお気に入りツイートとリンク記事を要約し、Podcast 形式の音声ファイルに変換するシステムよい。",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "generate-podcast": "ts-node src/index.ts",
+    "prisma:init": "prisma init",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "@types/node": "^22.14.1",
+    "axios": "^1.8.4",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.5.0",
+    "googleapis": "^148.0.0",
+    "openai": "^4.93.0",
+    "prisma": "^6.6.0",
+    "puppeteer": "^24.6.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}

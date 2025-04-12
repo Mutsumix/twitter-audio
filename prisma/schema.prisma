@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ProcessedTweet {
+  id          Int      @id @default(autoincrement())
+  tweetDate   DateTime
+  account     String
+  tweetLink   String   @unique
+  contentLink String?
+  content     String
+  category    String   // "TECH" or "OTHER"
+  processed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tweetDate])
+  @@index([processed])
+}
+
+model PodcastEpisode {
+  id           Int      @id @default(autoincrement())
+  title        String
+  fileLocation String
+  duration     Int      // 秒単位
+  generatedAt  DateTime @default(now())
+  tweets       String   // 含まれるツイートIDのJSON配列
+}
+
+model SystemLog {
+  id        Int      @id @default(autoincrement())
+  level     String   // "INFO", "WARN", "ERROR"
+  message   String
+  timestamp DateTime @default(now())
+  details   String?
+}
