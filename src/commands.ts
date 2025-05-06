@@ -226,28 +226,29 @@ async function addRadioJingles(
   outputPath?: string
 ): Promise<string> {
   try {
-    // ジングルの生成（既に存在すれば再利用）
-    // バランスの取れた読み上げテキスト
-    const introText =
-      "こんにちは、Twitterお気に入りポッドキャストへようこそ。今回のお気に入りツイートをご紹介します。";
-    const outroText =
-      "以上で今回のTwitterお気に入りポッドキャストを終わります。ご清聴 ありがとうございました。";
-
-    // 挨拶音声の取得または生成（日本語ボイスIDを使用）
-    const introPath = await getOrCreateRadioJingle(
-      "radio_intro.mp3",
-      introText,
-      false,
-      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
+    // 既存のジングルファイルを使用
+    const introPath = path.join(
+      process.cwd(),
+      "assets",
+      "audio",
+      "sfx",
+      "podcast_intro_jingle.mp3"
+    );
+    const outroPath = path.join(
+      process.cwd(),
+      "assets",
+      "audio",
+      "sfx",
+      "podcast_outro_jingle.mp3"
     );
 
-    // 結び音声の取得または生成（日本語ボイスIDを使用）
-    const outroPath = await getOrCreateRadioJingle(
-      "radio_outro.mp3",
-      outroText,
-      false,
-      "GKDaBI8TKSBJVhsCLD6n" // 日本語ボイスID（asahi - 日本人男性）
-    );
+    // ファイルの存在確認
+    if (!fs.existsSync(introPath)) {
+      throw new Error(`イントロジングルファイルが見つかりません: ${introPath}`);
+    }
+    if (!fs.existsSync(outroPath)) {
+      throw new Error(`アウトロジングルファイルが見つかりません: ${outroPath}`);
+    }
 
     // 出力パスの設定
     if (!outputPath) {
@@ -255,11 +256,11 @@ async function addRadioJingles(
       const fileName = path.basename(filePath, fileExt);
       outputPath = path.join(
         path.dirname(filePath),
-        `${fileName}_with_jingles${fileExt}`
+        `${fileName}_with_sfx${fileExt}`
       );
     }
 
-    // ファイルの結合（挨拶 + 本編 + 結び）
+    // ファイルの結合（イントロジングル + 本編 + アウトロジングル）
     logInfo("ジングルを追加して結合します");
     const resultPath = await mergeAudioFiles(
       [introPath, filePath, outroPath],

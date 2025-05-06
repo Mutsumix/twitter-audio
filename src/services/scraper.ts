@@ -7,7 +7,71 @@ import puppeteer from "puppeteer";
 const cheerio = require("cheerio");
 import { logError, logInfo } from "../utils/logger";
 import { ScrapedContent } from "../types";
+import { config } from "../config";
 import { retryAsync } from "../utils/error-handler";
+
+/**
+ * コンテンツがエラーメッセージかどうかを判定する
+ * @param content スクレイピングしたコンテンツ
+ * @returns エラーメッセージならtrue、そうでなければfalse
+ */
+function isErrorMessage(content: string): boolean {
+  // エラーメッセージのパターン
+  const errorPatterns = [
+    "特定のブラウザをサポートしていない",
+    "サポート対象のブラウザに切り替える",
+    "X Corpの運営するウェブサイトx.com",
+    "ブラウザが現在サポートされていません",
+    "このブラウザはサポートされていません",
+  ];
+
+  // いずれかのパターンが含まれていればエラーメッセージと判断
+  return errorPatterns.some((pattern) => content.includes(pattern));
+}
+
+/**
+ * HTMLからコンテンツを抽出する
+ * @param $ cheerioオブジェクト
+ * @param title ページタイトル（コンテンツが見つからない場合のフォールバック）
+ * @returns 抽出したコンテンツ
+ */
+function extractContent($: any, title: string): string {
+  // 記事コンテンツを取得（一般的な記事コンテナを対象）
+  let content = "";
+  const contentSelectors = [
+    "article",
+    ".article",
+    ".post-content",
+    ".entry-content",
+    "main",
+    "#main",
+    ".main-content",
+    ".content",
+  ];
+
+  for (const selector of contentSelectors) {
+    const element = $(selector);
+    if (element.length > 0) {
+      // HTML要素を除去してテキストのみ取得
+      content = element.text().trim().replace(/\s+/g, " ");
+      break;
+    }
+  }
+
+  // コンテンツが見つからない場合は本文全体を使用
+  if (!content) {
+    // 不要な要素を削除
+    $("header, nav, footer, script, style, noscript, iframe, form").remove();
+    content = $("body").text().trim().replace(/\s+/g, " ");
+  }
+
+  // 空の場合は仕方なくタイトルだけを使用
+  if (!content) {
+    content = title;
+  }
+
+  return content;
+}
 
 /**
  * URLからWebページの内容を取得する
@@ -79,40 +143,19 @@ export const scrapeUrl = async (url: string): Promise<ScrapedContent> => {
               "";
 
             // 本文抽出
-            // 記事コンテンツを取得（一般的な記事コンテナを対象）
-            let content = "";
-            const contentSelectors = [
-              "article",
-              ".article",
-              ".post-content",
-              ".entry-content",
-              "main",
-              "#main",
-              ".main-content",
-              ".content",
-            ];
+            const content = extractContent($, title);
 
-            for (const selector of contentSelectors) {
-              const element = $(selector);
-              if (element.length > 0) {
-                // HTML要素を除去してテキストのみ取得
-                content = element.text().trim().replace(/\s+/g, " ");
-                break;
-              }
-            }
-
-            // コンテンツが見つからない場合は本文全体を使用
-            if (!content) {
-              // 不要な要素を削除
-              $(
-                "header, nav, footer, script, style, noscript, iframe, form"
-              ).remove();
-              content = $("body").text().trim().replace(/\s+/g, " ");
-            }
-
-            // 空の場合は仕方なくタイトルだけを使用
-            if (!content) {
-              content = title;
+            // エラーメッセージのチェック
+            if (isErrorMessage(content)) {
+              logInfo(`エラーメッセージが検出されました: ${url}`);
+              return {
+                url,
+                title,
+                content: "", // エラーメッセージの場合は空文字を返す
+                siteName,
+                publishDate,
+                error: "ブラウザ非対応エラーが検出されました",
+              };
             }
 
             logInfo(`コンテンツ抽出完了: ${content.length}文字`);
