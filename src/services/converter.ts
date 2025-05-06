@@ -3,8 +3,17 @@
  * 要約したコンテンツを自然な会話形式に変換
  */
 import OpenAI from "openai";
-import { ContentCategory } from "../config/constants";
-import { SummarizedContent, ConversationalContent } from "../types";
+import {
+  ContentCategory,
+  TechSubCategory,
+  OtherSubCategory,
+  SubCategoryNames,
+} from "../config/constants";
+import {
+  SummarizedContent,
+  ConversationalContent,
+  GroupedContents,
+} from "../types";
 import { config } from "../config";
 import { logError, logInfo } from "../utils/logger";
 import { retryAsync } from "../utils/error-handler";
@@ -141,48 +150,170 @@ function postProcessText(text: string): string {
 
 /**
  * 複数の要約コンテンツをまとめて会話形式に変換
- * 個別処理ではなく、コンテンツをまとめて分析する効率的な方法
- * @param techContents 技術系コンテンツの配列
- * @param otherContents その他コンテンツの配列
+ * サブカテゴリごとにグループ化されたコンテンツを処理
+ * @param groupedContents グループ化されたコンテンツ
  * @returns 会話形式に変換されたコンテンツ
  */
 export const createPodcastScript = async (
-  techContents: SummarizedContent[],
-  otherContents: SummarizedContent[]
+  groupedContents: GroupedContents
 ): Promise<string> => {
-  logInfo("会話形式への変換を開始します - 効率的な一括処理方式");
+  logInfo("会話形式への変換を開始します - グループ処理方式");
 
-  // 技術系コンテンツの一括処理
+  // 技術系コンテンツの処理
   let techScript = "";
-  if (techContents.length > 0) {
+  let techCount = 0;
+
+  // サブカテゴリごとのコンテンツ数を計算
+  const techSubCategoryCounts: Record<string, number> = {};
+  Object.entries(groupedContents.tech).forEach(([subCat, contents]) => {
+    techSubCategoryCounts[subCat] = contents.length;
+    techCount += contents.length;
+  });
+
+  // コンテンツ数順にソート
+  const sortedTechSubCategories = Object.entries(techSubCategoryCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .map(([subCat]) => subCat);
+
+  // 各サブカテゴリを処理
+  for (const subCat of sortedTechSubCategories) {
+    const contents = groupedContents.tech[subCat];
+
+    // コンテンツが少ない場合（例：2件以下）はスキップして後でまとめる
+    if (contents.length <= 2 && sortedTechSubCategories.length > 1) {
+      continue;
+    }
+
     try {
-      techScript = await generateCombinedSection(techContents, "技術系");
+      const subCatName =
+        SubCategoryNames[subCat as keyof typeof SubCategoryNames] ||
+        "その他技術トピック";
+      const sectionIntro = `\n## ${subCatName}に関する話題\n\n`;
+      const sectionContent = await generateCombinedSection(
+        contents,
+        subCatName
+      );
+
       // 後処理を適用
-      techScript = postProcessText(techScript);
+      const processedContent = postProcessText(sectionContent);
+      techScript += sectionIntro + processedContent + "\n\n";
     } catch (error) {
-      logError("技術系コンテンツの一括処理に失敗しました", {
+      logError(`${subCat}カテゴリの処理に失敗しました`, {
         error: error instanceof Error ? error.message : String(error),
-        count: techContents.length,
+        count: contents.length,
       });
-      // 失敗時は簡易的な内容を生成
-      techScript = "技術系の話題については処理に失敗しました。";
     }
   }
 
-  // 一般コンテンツの一括処理
+  // コンテンツが少ないサブカテゴリをまとめて処理
+  const smallTechCategories = sortedTechSubCategories.filter(
+    (subCat) =>
+      groupedContents.tech[subCat].length <= 2 &&
+      sortedTechSubCategories.length > 1
+  );
+
+  if (smallTechCategories.length > 0) {
+    const combinedContents: SummarizedContent[] = [];
+    smallTechCategories.forEach((subCat) => {
+      combinedContents.push(...groupedContents.tech[subCat]);
+    });
+
+    if (combinedContents.length > 0) {
+      try {
+        const sectionIntro = "\n## その他の技術トピック\n\n";
+        const sectionContent = await generateCombinedSection(
+          combinedContents,
+          "その他技術トピック"
+        );
+
+        // 後処理を適用
+        const processedContent = postProcessText(sectionContent);
+        techScript += sectionIntro + processedContent + "\n\n";
+      } catch (error) {
+        logError("その他技術トピックの処理に失敗しました", {
+          error: error instanceof Error ? error.message : String(error),
+          count: combinedContents.length,
+        });
+      }
+    }
+  }
+
+  // 一般コンテンツの処理（技術系と同様の処理）
   let otherScript = "";
-  if (otherContents.length > 0) {
+  let otherCount = 0;
+
+  // サブカテゴリごとのコンテンツ数を計算
+  const otherSubCategoryCounts: Record<string, number> = {};
+  Object.entries(groupedContents.other).forEach(([subCat, contents]) => {
+    otherSubCategoryCounts[subCat] = contents.length;
+    otherCount += contents.length;
+  });
+
+  // コンテンツ数順にソート
+  const sortedOtherSubCategories = Object.entries(otherSubCategoryCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .map(([subCat]) => subCat);
+
+  // 各サブカテゴリを処理
+  for (const subCat of sortedOtherSubCategories) {
+    const contents = groupedContents.other[subCat];
+
+    // コンテンツが少ない場合（例：2件以下）はスキップして後でまとめる
+    if (contents.length <= 2 && sortedOtherSubCategories.length > 1) {
+      continue;
+    }
+
     try {
-      otherScript = await generateCombinedSection(otherContents, "一般");
+      const subCatName =
+        SubCategoryNames[subCat as keyof typeof SubCategoryNames] ||
+        "その他の話題";
+      const sectionIntro = `\n## ${subCatName}\n\n`;
+      const sectionContent = await generateCombinedSection(
+        contents,
+        subCatName
+      );
+
       // 後処理を適用
-      otherScript = postProcessText(otherScript);
+      const processedContent = postProcessText(sectionContent);
+      otherScript += sectionIntro + processedContent + "\n\n";
     } catch (error) {
-      logError("一般コンテンツの一括処理に失敗しました", {
+      logError(`${subCat}カテゴリの処理に失敗しました`, {
         error: error instanceof Error ? error.message : String(error),
-        count: otherContents.length,
+        count: contents.length,
       });
-      // 失敗時は簡易的な内容を生成
-      otherScript = "一般的な話題については処理に失敗しました。";
+    }
+  }
+
+  // コンテンツが少ないサブカテゴリをまとめて処理
+  const smallOtherCategories = sortedOtherSubCategories.filter(
+    (subCat) =>
+      groupedContents.other[subCat].length <= 2 &&
+      sortedOtherSubCategories.length > 1
+  );
+
+  if (smallOtherCategories.length > 0) {
+    const combinedContents: SummarizedContent[] = [];
+    smallOtherCategories.forEach((subCat) => {
+      combinedContents.push(...groupedContents.other[subCat]);
+    });
+
+    if (combinedContents.length > 0) {
+      try {
+        const sectionIntro = "\n## その他の話題\n\n";
+        const sectionContent = await generateCombinedSection(
+          combinedContents,
+          "その他の話題"
+        );
+
+        // 後処理を適用
+        const processedContent = postProcessText(sectionContent);
+        otherScript += sectionIntro + processedContent + "\n\n";
+      } catch (error) {
+        logError("その他の話題の処理に失敗しました", {
+          error: error instanceof Error ? error.message : String(error),
+          count: combinedContents.length,
+        });
+      }
     }
   }
 
@@ -197,20 +328,24 @@ export const createPodcastScript = async (
 
     // 技術系コンテンツ
     const techSection =
-      techContents.length > 0
-        ? `今週の技術系の話題は${techContents.length}件ありました。\n\n${techScript}\n\n`
+      techCount > 0
+        ? `今週の技術系の話題は${techCount}件ありました。\n\n${techScript}\n\n`
         : "";
 
     // その他コンテンツ
     const otherSection =
-      otherContents.length > 0
-        ? `続いて、その他の話題を${otherContents.length}件紹介します。\n\n${otherScript}\n\n`
+      otherCount > 0
+        ? `続いて、その他の話題を${otherCount}件紹介します。\n\n${otherScript}\n\n`
         : "";
 
     // 統計情報と傾向のまとめを生成
+    // 全てのコンテンツを配列に変換
+    const allTechContents = Object.values(groupedContents.tech).flat();
+    const allOtherContents = Object.values(groupedContents.other).flat();
+
     const summarySection = await generateStatisticalSummary(
-      techContents,
-      otherContents
+      allTechContents,
+      allOtherContents
     );
 
     // 固定エンディング
@@ -231,9 +366,7 @@ export const createPodcastScript = async (
     return `こんにちは、今回は${formatDateTimeJP(
       new Date()
     )}に録音した週間お気に入りポッドキャストをお届けします。
-    今週は技術系の話題が${techContents.length}件、その他の話題が${
-      otherContents.length
-    }件ありました。
+    今週は技術系の話題が${techCount}件、その他の話題が${otherCount}件ありました。
     処理中にエラーが発生したため、詳細な内容をお届けできません。申し訳ありません。`;
   }
 };

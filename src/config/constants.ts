@@ -11,6 +11,41 @@ export enum ContentCategory {
   OTHER = "OTHER",
 }
 
+// 技術系サブカテゴリ
+export enum TechSubCategory {
+  PROGRAMMING_LANGUAGE = "PROGRAMMING_LANGUAGE", // プログラミング言語
+  FRAMEWORK = "FRAMEWORK", // フレームワーク
+  AI_ML = "AI_ML", // AI/機械学習
+  TOOLS = "TOOLS", // 開発ツール
+  WEB_DEV = "WEB_DEV", // Web開発
+  OTHER_TECH = "OTHER_TECH", // その他技術
+}
+
+// 一般サブカテゴリ
+export enum OtherSubCategory {
+  NEWS = "NEWS", // ニュース
+  ENTERTAINMENT = "ENTERTAINMENT", // エンターテイメント
+  LIFESTYLE = "LIFESTYLE", // ライフスタイル
+  HOBBY = "HOBBY", // 趣味
+  OTHER_GENERAL = "OTHER_GENERAL", // その他一般
+}
+
+// サブカテゴリの表示名
+export const SubCategoryNames = {
+  [TechSubCategory.PROGRAMMING_LANGUAGE]: "プログラミング言語",
+  [TechSubCategory.FRAMEWORK]: "フレームワーク",
+  [TechSubCategory.AI_ML]: "AI・機械学習",
+  [TechSubCategory.TOOLS]: "開発ツール",
+  [TechSubCategory.WEB_DEV]: "Web開発",
+  [TechSubCategory.OTHER_TECH]: "その他技術トピック",
+
+  [OtherSubCategory.NEWS]: "ニュース",
+  [OtherSubCategory.ENTERTAINMENT]: "エンターテイメント",
+  [OtherSubCategory.LIFESTYLE]: "ライフスタイル",
+  [OtherSubCategory.HOBBY]: "趣味",
+  [OtherSubCategory.OTHER_GENERAL]: "その他の話題",
+};
+
 // ログレベル
 export enum LogLevel {
   INFO = "INFO",

@@ -26,6 +26,15 @@ export interface SummarizedContent {
   original: TweetData;
   summary: string;
   category: ContentCategory;
+  subCategory?: string; // サブカテゴリを追加
+}
+
+/**
+ * グループ化されたコンテンツの型
+ */
+export interface GroupedContents {
+  tech: Record<string, SummarizedContent[]>;
+  other: Record<string, SummarizedContent[]>;
 }
 
 /**
@@ -89,6 +98,23 @@ export interface ClassificationResult {
   category: ContentCategory;
   confidence: number;
   reasoning?: string;
+}
+
+/**
+ * サブカテゴリ分類結果の型
+ */
+export interface SubCategoryClassificationResult {
+  subCategory: string;
+  confidence: number;
+  reasoning?: string;
+}
+
+/**
+ * 完全な分類結果の型
+ */
+export interface FullClassificationResult {
+  category: ContentCategory;
+  subCategory: string;
 }
 
 /**

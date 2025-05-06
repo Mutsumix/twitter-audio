@@ -5,12 +5,19 @@
 import path from "path";
 import fs from "fs";
 import { config } from "./config";
-import { ContentCategory } from "./config/constants";
-import { TweetData, SummarizedContent } from "./types";
+import {
+  ContentCategory,
+  TechSubCategory,
+  OtherSubCategory,
+} from "./config/constants";
+import { TweetData, SummarizedContent, GroupedContents } from "./types";
 import prisma from "./db";
 import { fetchRecentTweets } from "./services/sheets";
 import { scrapeUrl } from "./services/scraper";
-import { classifyTweet } from "./services/classifier";
+import {
+  classifyTweet,
+  classifyTweetWithSubCategory,
+} from "./services/classifier";
 import { summarizeTweet } from "./services/summarizer";
 import { createPodcastScript } from "./services/converter";
 import { textToSpeech } from "./services/tts";
@@ -47,9 +54,12 @@ export async function processAll(options?: { maxTweets?: number }) {
           scrapedContent = await scrapeUrl(tweet.contentLink);
         }
 
-        // 2.2 コンテンツを分類（技術系かそれ以外か）
+        // 2.2 コンテンツを分類（メインカテゴリとサブカテゴリ）
         logInfo(`コンテンツの分類を行います: ${tweet.tweetLink}`);
-        const classificationResult = await classifyTweet(tweet, scrapedContent);
+        const { category, subCategory } = await classifyTweetWithSubCategory(
+          tweet,
+          scrapedContent
+        );
 
         // 分類結果をDBに保存
         await saveTweet({
@@ -58,16 +68,20 @@ export async function processAll(options?: { maxTweets?: number }) {
           tweetLink: tweet.tweetLink,
           contentLink: tweet.contentLink,
           content: tweet.content,
-          category: classificationResult.category,
+          category: category,
+          // サブカテゴリはDBスキーマに追加されていないため保存しない
         });
 
         // 2.3 コンテンツを要約
         logInfo(`コンテンツの要約を行います: ${tweet.tweetLink}`);
         const summarizedContent = await summarizeTweet(
           tweet,
-          classificationResult.category,
+          category,
           scrapedContent
         );
+
+        // サブカテゴリを追加
+        summarizedContent.subCategory = subCategory;
 
         processedContents.push(summarizedContent);
 
@@ -82,21 +96,71 @@ export async function processAll(options?: { maxTweets?: number }) {
       }
     }
 
-    // カテゴリで分類
-    const techContents = processedContents.filter(
-      (content) => content.category === ContentCategory.TECH
+    // コンテンツをグループ化する関数
+    function groupContentsByCategory(
+      contents: SummarizedContent[]
+    ): GroupedContents {
+      const result: GroupedContents = {
+        tech: {},
+        other: {},
+      };
+
+      // 技術系とその他に分ける
+      const techContents = contents.filter(
+        (content) => content.category === ContentCategory.TECH
+      );
+      const otherContents = contents.filter(
+        (content) => content.category === ContentCategory.OTHER
+      );
+
+      // 技術系をサブカテゴリでグループ化
+      techContents.forEach((content) => {
+        const subCat = content.subCategory || TechSubCategory.OTHER_TECH;
+        if (!result.tech[subCat]) {
+          result.tech[subCat] = [];
+        }
+        result.tech[subCat].push(content);
+      });
+
+      // その他をサブカテゴリでグループ化
+      otherContents.forEach((content) => {
+        const subCat = content.subCategory || OtherSubCategory.OTHER_GENERAL;
+        if (!result.other[subCat]) {
+          result.other[subCat] = [];
+        }
+        result.other[subCat].push(content);
+      });
+
+      // 各サブカテゴリのコンテンツ数をログ出力
+      Object.entries(result.tech).forEach(([subCat, contents]) => {
+        logInfo(`技術系/${subCat}: ${contents.length}件`);
+      });
+
+      Object.entries(result.other).forEach(([subCat, contents]) => {
+        logInfo(`その他/${subCat}: ${contents.length}件`);
+      });
+
+      return result;
+    }
+
+    // コンテンツをグループ化
+    const groupedContents = groupContentsByCategory(processedContents);
+
+    // 技術系と一般のコンテンツ数を計算
+    const techCount = Object.values(groupedContents.tech).reduce(
+      (sum, contents) => sum + contents.length,
+      0
     );
-    const otherContents = processedContents.filter(
-      (content) => content.category === ContentCategory.OTHER
+    const otherCount = Object.values(groupedContents.other).reduce(
+      (sum, contents) => sum + contents.length,
+      0
     );
 
-    logInfo(
-      `分類結果: 技術系=${techContents.length}件, その他=${otherContents.length}件`
-    );
+    logInfo(`分類結果: 技術系=${techCount}件, その他=${otherCount}件`);
 
     // 3. 会話形式に変換
     logInfo("会話形式への変換を開始します");
-    const script = await createPodcastScript(techContents, otherContents);
+    const script = await createPodcastScript(groupedContents);
 
     // 4. 原稿をテキストファイルに保存
     const timestampFormatted = formatDateTimeJP().replace(/[\/\s:]/g, "_");
