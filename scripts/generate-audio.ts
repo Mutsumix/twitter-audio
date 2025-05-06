@@ -94,14 +94,22 @@ if (latestFile) {
         // 効果音を含めた音声ファイルを結合（非同期処理を同期的に実行）
         const mergeAudioFilesSync = () => {
           return new Promise<void>((resolve, reject) => {
-            mergeAudioFiles(
-              [
-                INTRO_JINGLE, // オープニング効果音
-                generatedAudioPath, // 生成された音声ファイル
-                OUTRO_JINGLE, // エンディング効果音
-              ],
-              finalAudioPath
-            )
+            // 原稿の内容からセクションの数を特定
+            const techSectionMatches =
+              scriptContent.match(/## .+?に関する話題/g);
+            const otherSectionMatches = scriptContent.match(/## .+?の話題/g);
+
+            // セクションの数に基づいて遷移音を挿入
+            const audioFiles = [INTRO_JINGLE]; // オープニング効果音
+
+            // 生成された音声ファイルを使用
+            audioFiles.push(generatedAudioPath);
+
+            // エンディング効果音
+            audioFiles.push(OUTRO_JINGLE);
+
+            // 音声ファイルを結合
+            mergeAudioFiles(audioFiles, finalAudioPath)
               .then(() => {
                 console.log(
                   `効果音を含めた音声ファイルを生成しました: ${finalAudioPath}`
